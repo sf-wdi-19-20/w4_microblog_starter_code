@@ -17,7 +17,7 @@ app.use(express.static(__dirname + '/public'));
 var mongoose = require('mongoose');
 
 // include our module from the other file
-var Post = require("./models/post");
+var db = require("./models/models");
 
 // connect to db
 mongoose.connect('mongodb://localhost/microblog');
@@ -35,7 +35,7 @@ app.get('/', function (req, res) {
 // get all posts
 app.get('/api/posts', function (req, res) {
   // find all posts from the database 
-  Post.find({}, function(err, allPosts){
+  db.Post.find({}).populate('author').exec(function(err, allPosts){
     if (err){
       console.log("error: ", err);
       res.status(500).send(err);
@@ -50,9 +50,16 @@ app.get('/api/posts', function (req, res) {
 // create new post
 app.post('/api/posts', function (req, res) {
   // use params (author and text) from request body
-  // to create a new post
-  var newPost = new Post({
-    author: req.body.author,
+
+  // create the author (we'll assume it doesn't exist yet)
+  var newAuthor = new db.Author({
+    name: req.body.author
+  });
+  newAuthor.save();
+
+  // create a new post
+  var newPost = new db.Post({
+    author: newAuthor._id,
     text: req.body.text
   });
 
@@ -76,7 +83,7 @@ app.get('/api/posts/:id', function(req, res) {
   var targetId = req.params.id
 
   // find item in database matching the id
-  Post.findOne({_id: targetId}, function(err, foundPost){
+  db.Post.findOne({_id: targetId}, function(err, foundPost){
     console.log(foundPost);
     if(err){
       console.log("error: ", err);
@@ -96,7 +103,7 @@ app.put('/api/posts/:id', function(req, res) {
   var targetId = req.params.id;
 
   // find item in `posts` array matching the id
-  Post.findOne({_id: targetId}, function(err, foundPost){
+  db.Post.findOne({_id: targetId}, function(err, foundPost){
     console.log(foundPost); 
 
     if(err){
@@ -131,7 +138,7 @@ app.delete('/api/posts/:id', function(req, res) {
   var targetId = req.params.id;
 
  // remove item from the db that matches the id
-   Post.findOneAndRemove({_id: targetId}, function (err, deletedPost) {
+   db.Post.findOneAndRemove({_id: targetId}, function (err, deletedPost) {
     if (err){
       res.status(500).send(err);
     } else {
@@ -141,6 +148,31 @@ app.delete('/api/posts/:id', function(req, res) {
   });
 });
 
+
+// get all comments for one post
+app.get('/api/posts/:postid/comments', function(req, res){
+  // query the database to find the post indicated by the id
+  db.Post.findOne({_id: req.params.postid}, function(err, post){
+    // send the post's comments as the JSON response
+    res.json(post.comments);
+  });
+});
+
+app.post('/api/posts/:postid/comments', function(req, res){
+
+  // query the database to find the post indicated by the id
+  db.Post.findOne({_id: req.params.postid}, function(err, post){
+    // create a new comment record
+    var newComment = new db.Comment({text: req.body.text});
+
+    // add the new comment to the post's list of embedded comments
+    post.comments.push(newComment);
+
+    // send the new comment as the JSON response
+    res.json(newComment);
+  });
+
+});
 // set server to localhost:3000
 app.listen(3000, function () {
   console.log('server started on localhost:3000');

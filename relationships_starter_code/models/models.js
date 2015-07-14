@@ -1,6 +1,25 @@
 var mongoose = require('mongoose'),
 	Schema = mongoose.Schema;
 
+
+var CommentSchema = new Schema({
+	text: String,
+	timestamp: {
+				type : Date, 
+				default: Date.now 
+			}
+});
+
+var Comment = mongoose.model('Comment', CommentSchema);
+
+
+var AuthorSchema = new Schema({
+	name: String
+});
+
+var Author = mongoose.model('Author', AuthorSchema);
+
+
 var PostSchema = new Schema({
 	author: {
 		type: Schema.Types.ObjectId,
@@ -13,22 +32,7 @@ var PostSchema = new Schema({
 var Post = mongoose.model('Post', PostSchema);
 
 
-var AuthorSchema = new Schema({
-	name: String
-});
 
-var Author = mongoose.model('Author', AuthorSchema);
-
-
-var CommentSchema = new Schema({
-	text: String,
-	timestamp: {
-				type : Date, 
-				default: Date.now 
-			}
-});
-
-var Comment = mongoose.model('Comment', CommentSchema);
 
 module.exports.Post = Post;
 module.exports.Comment = Comment;
