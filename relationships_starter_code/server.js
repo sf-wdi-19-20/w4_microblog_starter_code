@@ -34,17 +34,17 @@ app.get('/', function (req, res) {
 
 // get all posts
 app.get('/api/posts', function (req, res) {
-  // find all posts from the database 
+  // find all posts from the database and
+  // populate all of the post's author information
   db.Post.find({}).populate('author').exec(function(err, allPosts){
     if (err){
-      console.log("error: ", err);
+      console.log("! error: ", err);
       res.status(500).send(err);
     } else {
       // send all posts as JSON response
       res.json(allPosts); 
     }
   });
-
 });
 
 // create new post
@@ -95,6 +95,8 @@ app.get('/api/posts/:id', function(req, res) {
   });
 
 });
+
+
 
 // update single post
 app.put('/api/posts/:id', function(req, res) {
@@ -158,6 +160,7 @@ app.get('/api/posts/:postid/comments', function(req, res){
   });
 });
 
+// add a new comment to a post
 app.post('/api/posts/:postid/comments', function(req, res){
 
   // query the database to find the post indicated by the id
@@ -171,9 +174,68 @@ app.post('/api/posts/:postid/comments', function(req, res){
     // send the new comment as the JSON response
     res.json(newComment);
   });
-
 });
+
+// get all authors
+app.get('/api/authors', function(req, res){
+  // query the database to find all authors
+  db.Author.find({}, function(err, authors){
+    // send the authors as the JSON response
+    res.json(authors);
+  });
+}); 
+
+// create a new author
+app.post('/api/authors', function(req, res){
+  // make a new author, using the name from the request body
+  var newAuthor = new db.Author({name: req.body.name});
+
+  // save the new author
+  newAuthor.save(function(err, author){
+    // send the new author as the JSON response
+    res.json(author);
+  });
+});
+
+
+// assign a specific author to a specific post
+
+app.put('/api/posts/:postid/authors/:authorid', function(req, res){
+  // query the database to find the author 
+  // (to make sure the id actually matches an author)
+  db.Author.find({_id: req.params.authorid}, function(err, author){
+    if (err){
+      console.log("error: ", err);
+      res.status(500).send("no author with id "+req.params.authorid);
+    } else {
+      // query the database to find the post
+      db.Post.find({_id: req.params.postid}, function(err, post){
+
+        if (err){  
+          res.status(500).send("no post with id"+req.params.postid);
+        } else {  // we found a post!
+          // update the post to reference the author
+          post.author = author._id;
+
+          // save the updated post
+          post.save(function(err, savedPost){
+            // send the updated post as the JSON response
+            res.json(savedPost);
+          });
+        }
+      });
+    }
+  });
+});
+
+
+
+
+
+
+
 // set server to localhost:3000
 app.listen(3000, function () {
   console.log('server started on localhost:3000');
 });
+
